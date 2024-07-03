@@ -5,6 +5,8 @@
 
 
 const int HT_SIZE = 50;
+const int HT_PRIME_1 = 211;
+const int HT_PRIME_2 = 139;
 
 static item* new_item(const char* k, const char* v){
 	item* it = malloc(sizeof(item));
@@ -37,7 +39,8 @@ void del_hash_table(hash_table* ht){
 	free(ht);	
 }
 
-// hash function
+// polynomial rolling hash function - 
+// https://www.geeksforgeeks.org/string-hashing-using-polynomial-rolling-hash-function/
 static int hash(const char* str, const int a, const int size){
 	long hsh = 0;
 	const int len_s = strlen(str);
@@ -48,12 +51,72 @@ static int hash(const char* str, const int a, const int size){
 	return (int)hsh;
 }
 
-// for handling collision -- double hashing
+// for handling collision -- double hashing -
+// https://www.geeksforgeeks.org/double-hashing/
 static int get_hash(const char* s, const int num_buck, const int attempt){
 	const int hash_a = hash(s,HT_PRIME_1, num_buck);
 	const int hash_b = hash(s,HT_PRIME_2, num_buck);
 	return (hash_a + (attempt*(hash_b + 1))) % num_buck;
 }
 
+
+void ht_insert(hash_table* ht, const char* key, const char* value){
+	item* it = new_item(key,value);
+	int index = get_hash(item->key,ht->size,0);
+	
+	int attempt = 1;
+	item* cur_item = ht->items[index];
+	while(cur_item!=NULL){
+		if(cur_item != &DELETED_ITEM){
+			if(strcmp(cur_item->key,key)==0){
+				del_item(cur_item);
+				ht->items[index]= item;
+				return;
+			}
+		}
+		index = get_hash(item->key,ht->size,attempt);
+		cur_item = ht->items[index];
+		attempt++;
+	}
+	ht->items[index] = item;
+	ht->count++;
+}
+
+char* ht_search(hash_table* ht, const char* key){
+	int index = get_hash(key,ht->size,0);
+	ht_item* item = ht->items[index];
+	
+	int attempt = 1;
+	while(item!=NULL){
+		if(item!= &DELETED_ITEM)
+			if(strcmp(item->key,key)==0) return item->value;
+		
+		index = get_hash(key, ht->size, attempt);
+		item = ht->items[index];
+		attempt++;
+	}
+	return NULL;
+}
+
+static item DELETED_ITEM = {NULL, NULL};
+
+void ht_delete(hash_table* ht, const char* key){
+	int index = get_hash(key,ht->size,0);
+	item* item = ht->items[index];
+	
+	int attempt = 1;
+	while(item !=NULL){
+		if(item != &DELETED_ITEM){
+			if(strcmp(item->key,key)==0){
+				del_item(item);
+				ht->items[index] = &DELETED_ITEM;
+			}
+		}
+	index = get_hash(key,ht->size,attempt);
+	item = ht->items[index];
+	attempt++;
+	}
+	ht->count--;
+}
 
 
